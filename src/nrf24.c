@@ -502,15 +502,15 @@ uint8_t bNRF24L01_TXModoI(uint8_t *data, uint8_t cantidadBytes) {
 NRF24L01_Tx_Status_t NRF24L01_GetTransmissionStatus(void){
 	uint8_t status = byNRF24L01_GetStatus();
 	return NRF24L01_Tx_Status_Ok;
-/*	if (bNRF24L01_LeerBit(status, PORT_NRF24L01_TX_DS)) {
-		 Envio del dato exitoso
+	if (bNRF24L01_LeerBit(status, PORT_NRF24L01_TX_DS)) {
+		/* Envio del dato exitoso */
 		return NRF24L01_Tx_Status_Ok;
 	} else if (bNRF24L01_LeerBit(status, PORT_NRF24L01_MAX_RT)) {
-		 No se recibio el AACK - se entiende como mensaje perdido
+		/* No se recibio el AACK - se entiende como mensaje perdido */
 		return NRF24L01_Tx_Status_Lost;
 	}
-	 Enviando mensaje: Esto es si TX_DS y/o MAX_RT valen '0'
-	return NRF24L01_Tx_Status_Sending;*/
+	 /*Enviando mensaje: Esto es si TX_DS y/o MAX_RT valen '0'*/
+	return NRF24L01_Tx_Status_Sending;
 }
 
 
