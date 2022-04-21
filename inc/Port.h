@@ -34,43 +34,43 @@
 /* Exported macro ------------------------------------------------------------*/
 
 /* Direcciones de los registros del NRF24L01 */
-#define NRF24L01_REG_CONFIG			0x00	//Configuration Register
-#define NRF24L01_REG_EN_AA			0x01	//Enable ‘Auto Acknowledgment’ Function
-#define NRF24L01_REG_EN_RXADDR		0x02	//Enabled RX Addresses
-#define NRF24L01_REG_SETUP_AW		0x03	//Setup of Address Widths (common for all data pipes)
-#define NRF24L01_REG_SETUP_RETR		0x04	//Setup of Automatic Retransmission
-#define NRF24L01_REG_RF_CH			0x05	//RF Channel
-#define NRF24L01_REG_RF_SETUP		0x06	//RF Setup Register
-#define NRF24L01_REG_STATUS			0x07	//Status Register
-#define NRF24L01_REG_OBSERVE_TX		0x08	//Read Only. Transmit observe register.
-#define NRF24L01_REG_CD				0x09	//Read Only. Received Power Detector. CD: Carrier Detect en NRF24L01+
+#define PORT_NRF24L01_REG_CONFIG		0x00	//Configuration Register
+#define PORT_NRF24L01_REG_EN_AA			0x01	//Enable ‘Auto Acknowledgment’ Function
+#define PORT_NRF24L01_REG_EN_RXADDR		0x02	//Enabled RX Addresses
+#define PORT_NRF24L01_REG_SETUP_AW		0x03	//Setup of Address Widths (common for all data pipes)
+#define PORT_NRF24L01_REG_SETUP_RETR	0x04	//Setup of Automatic Retransmission
+#define PORT_NRF24L01_REG_RF_CH			0x05	//RF Channel
+#define PORT_NRF24L01_REG_RF_SETUP		0x06	//RF Setup Register
+#define PORT_NRF24L01_REG_STATUS		0x07	//Status Register
+#define PORT_NRF24L01_REG_OBSERVE_TX	0x08	//Read Only. Transmit observe register.
+#define PORT_NRF24L01_REG_CD			0x09	//Read Only. Received Power Detector. CD: Carrier Detect en NRF24L01+
 /* Registro para la direccion del TX */
-#define NRF24L01_REG_TX_ADDR		0x10	//Transmit address. Used for a PTX device only
+#define PORT_NRF24L01_REG_TX_ADDR		0x10	//Transmit address. Used for a PTX device only
 /* Registros para la direccion del seteo
  * del tamaño del payload de cada byte */
-#define NRF24L01_REG_RX_PW_P0		0x11	//Number of bytes in RX payload in data pipe 0 (1 to 32 bytes).
-#define NRF24L01_REG_RX_PW_P1		0x12	//Number of bytes in RX payload in data pipe 1 (1 to 32 bytes).
-#define NRF24L01_REG_RX_PW_P2		0x13	//Number of bytes in RX payload in data pipe 2 (1 to 32 bytes).
-#define NRF24L01_REG_RX_PW_P3		0x14	//Number of bytes in RX payload in data pipe 3 (1 to 32 bytes).
-#define NRF24L01_REG_RX_PW_P4		0x15	//Number of bytes in RX payload in data pipe 4 (1 to 32 bytes).
-#define NRF24L01_REG_RX_PW_P5		0x16	//Number of bytes in RX payload in data pipe 5 (1 to 32 bytes).
+#define PORT_NRF24L01_REG_RX_PW_P0		0x11	//Number of bytes in RX payload in data pipe 0 (1 to 32 bytes).
+#define PORT_NRF24L01_REG_RX_PW_P1		0x12	//Number of bytes in RX payload in data pipe 1 (1 to 32 bytes).
+#define PORT_NRF24L01_REG_RX_PW_P2		0x13	//Number of bytes in RX payload in data pipe 2 (1 to 32 bytes).
+#define PORT_NRF24L01_REG_RX_PW_P3		0x14	//Number of bytes in RX payload in data pipe 3 (1 to 32 bytes).
+#define PORT_NRF24L01_REG_RX_PW_P4		0x15	//Number of bytes in RX payload in data pipe 4 (1 to 32 bytes).
+#define PORT_NRF24L01_REG_RX_PW_P5		0x16	//Number of bytes in RX payload in data pipe 5 (1 to 32 bytes).
 /* Registro saber el estado del FIFO */
-#define NRF24L01_REG_FIFO_STATUS	0x17	//FIFO Status Register
+#define PORT_NRF24L01_REG_FIFO_STATUS	0x17	//FIFO Status Register
 
 /* Valores iniciales por default de los registros, util para hacer un reseteo
  * a los valores por defecto */
 
-#define NRF24L01_REG_DEFAULT_VAL_EN_AA			0x3F	// Enable Auto ACK
-#define NRF24L01_REG_DEFAULT_VAL_SETUP_AW		0x03	// Address width 5 Bytes
-#define NRF24L01_REG_DEFAULT_VAL_RF_CH			0x02	// Channel 2
-#define NRF24L01_REG_DEFAULT_VAL_RF_SETUP		0x0F	// 2 Mbps & 0dBm & Setup LNA gain
-#define NRF24L01_REG_DEFAULT_VAL_STATUS			0x0E	// RX FIFO Empty & no interrupt detected
+#define PORT_NRF24L01_REG_DEFAULT_VAL_EN_AA			0x3F	// Enable Auto ACK
+#define PORT_NRF24L01_REG_DEFAULT_VAL_SETUP_AW		0x03	// Address width 5 Bytes
+#define PORT_NRF24L01_REG_DEFAULT_VAL_RF_CH			0x02	// Channel 2
+#define PORT_NRF24L01_REG_DEFAULT_VAL_RF_SETUP		0x0F	// 2 Mbps & 0dBm & Setup LNA gain
+#define PORT_NRF24L01_REG_DEFAULT_VAL_STATUS		0x0E	// RX FIFO Empty & no interrupt detected
 
 /* Direccion del Pipe 2-5 por default solo el LSB */
-#define NRF24L01_REG_DEFAULT_VAL_RX_ADDR_P2		0xC3
-#define NRF24L01_REG_DEFAULT_VAL_RX_ADDR_P3		0xC4
-#define NRF24L01_REG_DEFAULT_VAL_RX_ADDR_P4		0xC5
-#define NRF24L01_REG_DEFAULT_VAL_RX_ADDR_P5		0xC6
+#define PORT_NRF24L01_REG_DEFAULT_VAL_RX_ADDR_P2		0xC3
+#define PORT_NRF24L01_REG_DEFAULT_VAL_RX_ADDR_P3		0xC4
+#define PORT_NRF24L01_REG_DEFAULT_VAL_RX_ADDR_P4		0xC5
+#define PORT_NRF24L01_REG_DEFAULT_VAL_RX_ADDR_P5		0xC6
 
 
 
@@ -81,48 +81,47 @@
  * */
 
 /* Posiciones de los bits del registro de configuracion */
-#define NRF24L01_MASK_RX_DR		6
-#define NRF24L01_MASK_TX_DS		5
-#define NRF24L01_MASK_MAX_RT	4
-#define NRF24L01_EN_CRC			3
-#define NRF24L01_CRCO			2
-#define NRF24L01_PWR_UP			1
-#define NRF24L01_PRIM_RX		0
+#define PORT_NRF24L01_MASK_RX_DR	6
+#define PORT_NRF24L01_MASK_TX_DS	5
+#define PORT_NRF24L01_MASK_MAX_RT	4
+#define PORT_NRF24L01_EN_CRC		3
+#define PORT_NRF24L01_CRCO			2
+#define PORT_NRF24L01_PWR_UP		1
+#define PORT_NRF24L01_PRIM_RX		0
 
 /* Setear el intervalo de tiempo y la cantidad de intentos de retransmision */
-#define NRF24L01_ARD			4 //4 bits superiores del Byte
-#define NRF24L01_ARC			0 //4 bits inferiores del Byte
+#define PORT_NRF24L01_ARD			4 //4 bits superiores del Byte
+#define PORT_NRF24L01_ARC			0 //4 bits inferiores del Byte
 
 /* Seteo del registro de RF */
 //#define NRF24L01_PLL_LOCK		4 // bit 4
-#define NRF24L01_RF_DR			3 // bit 3
-#define NRF24L01_RF_PWR			1 // bits 1, 2
-#define NRF24L01_LNA_HCURR		0 // bit 0
+#define PORT_NRF24L01_RF_DR			3 // bit 3
+#define PORT_NRF24L01_RF_PWR		1 // bits 1, 2
+#define PORT_NRF24L01_LNA_HCURR		0 // bit 0
 
 /* Registro del status del NRF24L01 */
-#define NRF24L01_RX_DR			6 // Data Ready RX FIFO interrupt. Set high when new data arrives RX FIFO15. Write 1 to clear bit.
-#define NRF24L01_TX_DS			5 // Data Sent TX FIFO interrupt. Set high when packet sent on TX....
-#define NRF24L01_MAX_RT			4 // Maximum number of TX retries interrupt.....
-#define NRF24L01_RX_P_NO		1 //3 bits
-#define NRF24L01_TX_FULL		0
+#define PORT_NRF24L01_RX_DR			6 // Data Ready RX FIFO interrupt. Set high when new data arrives RX FIFO15. Write 1 to clear bit.
+#define PORT_NRF24L01_TX_DS			5 // Data Sent TX FIFO interrupt. Set high when packet sent on TX....
+#define PORT_NRF24L01_MAX_RT		4 // Maximum number of TX retries interrupt.....
+#define PORT_NRF24L01_RX_P_NO		1 //3 bits
+#define PORT_NRF24L01_TX_FULL		0
 
 /* Registro de observacion de transmision */
-#define NRF24L01_PLOS_CNT		4 //4 bits superiores del Byte
+#define PORT_NRF24L01_PLOS_CNT		4 //4 bits superiores del Byte
 
 /* bit para detectar si ay portadora en algun canal */
-#define NRF24L01_CD		0 // LSb
+#define PORT_NRF24L01_CD			0 // LSb
 
 /* FIFO status*/
-#define NRF24L01_TX_REUSE		6
-#define NRF24L01_TXFIFO_FULL	5
-#define NRF24L01_TX_EMPTY		4
+#define PORT_NRF24L01_TX_REUSE		6
+#define PORT_NRF24L01_TXFIFO_FULL	5
+#define PORT_NRF24L01_TX_EMPTY		4
 								// bit 2 y 3 reservado
-#define NRF24L01_RX_FULL		1
-#define NRF24L01_RX_EMPTY		0
+#define PORT_NRF24L01_RX_FULL		1
+#define PORT_NRF24L01_RX_EMPTY		0
 
-/* Instruction Mnemonics */
-#define NRF24L01_REUSE_TX_PL_MASK	0xE3
-#define NRF24L01_NOP_MASK			0xFF // No Operation. Usada para leer el registro STATUS
+/* Nombre de instrucciones */
+//#define NRF24L01_REUSE_TX_PL_MASK	0xE3
 
 
 
@@ -296,7 +295,8 @@ void vNRF24L01_RxModo(void);
 void vNRF24L01_TxModo(void);
 
 /* Standby-I se utiliza para minimizar el consumo de potencia manteniendo tiempos
- * cortos de encendido para TX o RX. El SPI puede utilizarse.
+ * cortos de encendido para TX o RX. El SPI puede utilizarse para leer o escribir
+ * registros.
  *
  * Parametro:void
  *
@@ -322,7 +322,7 @@ uint8_t bNRF24L01_PowerUp(void);
 
 /* Se utiliza para apagar el NRF24L01. Queda en modo bajo consumo. El dispositivo
  * no puede enviar ni recibir paquetes via RF, pero si mantiene los valores de los
- * registros y puede configurarse via SPI.
+ * registros y puede LEERSE los registros via SPI.
  *
  * Parametro:void
  *

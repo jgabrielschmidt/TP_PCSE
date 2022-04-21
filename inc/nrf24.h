@@ -60,7 +60,7 @@ typedef enum _Pipe_Number_t {
 	Pipe3 = 3,
 	Pipe4 = 4,
 	Pipe5 = 5,
-	PipeAll = 6 /* Utilizado para los registros en que se pueden re/setear todos a la vez */
+	PipeAll = 6, /* Utilizado para los registros en que se pueden re/setear todos a la vez */
 } Pipe_Number_t;
 
 
@@ -69,18 +69,19 @@ typedef enum _Pipe_Number_t {
 /*          Encabezado de las funciones  							          */
 /******************************************************************************/
 /**
- * Setea el tamaño del CRC.
- * parametros: enDis: '0' - 1 byte , '1' – 2 bytes
- * retval ninguno
- */
-void vNRF24L01_CRCScheme(uint8_t enDis);
-/**
  * Inicializa el puerto SPI 1, el pin de CE y el de CSN. Esta función se debe llamar
  * antes de utilizar cualquier otra funcion relativa al NRF24L01.
  * parametros: ninguno
  * retval ninguno
  */
-void vNRF24L01_SPI1_Iniciar(void);
+void vNRF24L01_Iniciar(void);
+
+/**
+ * Setea el tamaño del CRC.
+ * parametros: enDis: '1' - 1 byte , '2' – 2 bytes
+ * retval ninguno
+ */
+void vNRF24L01_CRCScheme(uint8_t enDis);
 
 /**
  * Inicializa el modulo NRF24L01, resetea los registros a los valores iniciales segun
@@ -244,7 +245,6 @@ uint8_t bNRF24L01_DetectarPortadora(void);
  *	return: 0-15: cantidad de reenvios.
  */
 uint8_t byNRF24L01_GetRetransmissionsCount(void);
-
 
 /**
  *	Borra los flags del registro STATUS (0x07): RX_DR, TX_DS, MAX_RT. Se refieren a

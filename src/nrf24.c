@@ -68,11 +68,17 @@ static NRF24L01_t NRF24L01_Struct;
 
 const Pipe_Number_Dir_t PipeDir[] = {Pipe0Dir, Pipe1Dir, Pipe2Dir, Pipe3Dir, Pipe4Dir, Pipe5Dir};
 
+uint8_t DefaultDirPipe0Tx[] = {0xE7, 0xE7, 0xE7, 0xE7, 0xE7},
+	    DefaultDirPipe1[] = {0xC2, 0xC2, 0xC2, 0xC2, 0xC2};
 /* Private function prototypes -----------------------------------------------*/
 
 /* Funciones de inicio del SPI1 */
+void vNRF24L01_Iniciar(void);
 
-void vNRF24L01_SPI1_Iniciar(void);
+/* Funciones para el manejo de la variable estructura del NRF24L01 */
+static void vNRF24L01_CargarStruc(void);
+static void vNRF24L01_CargarStruc_Defecto(void);
+static void vCargar_Direccion_Structura(uint8_t *cadenaStruc, const uint8_t *direccion);
 
 /* Funciones para configurar el NRF24L01 */
 void vNRF24L01_CRCScheme(uint8_t enDis);
@@ -109,29 +115,100 @@ void NRF24L01_falla(void);
 /******************************************************************************/
 /*           Codigo													          */
 /******************************************************************************/
-void vNRF24L01_CRCScheme(uint8_t enDis){
-	/* enDis: ´0´- 1 byte , '1' – 2 bytes */
-	vNRF24L01_EscribirBit(NRF24L01_REG_CONFIG, NRF24L01_CRCO, enDis);
-	if(!enDis){
-		NRF24L01_Struct.CRCScheme = 1;
-	}else{
-		NRF24L01_Struct.CRCScheme = 2;
+
+void vNRF24L01_Iniciar(void){
+	/* Inicializo el puerto SPI 1 */
+	vNRF24L01_SPI1_Init();
+	/* Inicio los pines de Chip enable y chip select not */
+	vNRF24L01_SPI1_CE_CSN_Iniciar();
+	/* Voy al modo StbyI */
+	bNRF24L01_StbyModoIOn();
+	/* Cargo los valores en la estrucutra */
+	//vNRF24L01_CargarStruc();
+}
+
+
+static void vNRF24L01_CargarStruc(void){
+
+	/* Cargo el valor del tamaño de las direcciones en la estructura */
+	NRF24L01_Struct.TamañoDeDireccion = byNRF24L01_LeerRegistro(PORT_NRF24L01_REG_SETUP_AW) + 2;
+
+	/* Cargo el valor del canal en la estructura */
+	NRF24L01_Struct.CanalDeRF = byNRF24L01_LeerRegistro(PORT_NRF24L01_REG_RF_CH);
+
+	//NRF24L01_Struct.Potencia = leer.....;
+	//NRF24L01_Struct.DataRate = leer.....;
+
+	/* Cargo el valor del esquema de CRCO en la estructura */
+	NRF24L01_Struct.CRCScheme = bNRF24L01_LeerBit(PORT_NRF24L01_REG_CONFIG, PORT_NRF24L01_CRCO) + 1;
+
+	uint8_t byteVec[NRF24L01_Struct.TamañoDeDireccion];
+
+	/* Cargo los bytes de la direccion del Tx en la estructura */
+	vNRF24L01_LeerMultiRegistros(PORT_NRF24L01_REG_TX_ADDR, byteVec, NRF24L01_Struct.TamañoDeDireccion);
+	vCargar_Direccion_Structura(NRF24L01_Struct.DireccionTx, byteVec);
+
+	/* Cargo los bytes de la direccion del Pipe0 en la estructura */
+	vNRF24L01_LeerMultiRegistros(PipeDir[Pipe0], byteVec, NRF24L01_Struct.TamañoDeDireccion);
+	vCargar_Direccion_Structura(NRF24L01_Struct.DireccionPipe0, byteVec);
+
+	/* Cargo los bytes de la direccion del Pipe1 en la estructura */
+	vNRF24L01_LeerMultiRegistros(PipeDir[Pipe1], byteVec, NRF24L01_Struct.TamañoDeDireccion);
+	vCargar_Direccion_Structura(NRF24L01_Struct.DireccionPipe1, byteVec);
+
+	/* Cargo el ultimo byte de la direccion de los pipes 2 - 5 en la estructura */
+	for(uint8_t pipe = Pipe2; pipe < PipeAll; pipe++)
+		NRF24L01_Struct.DireccionPipes2_5[pipe - Pipe2] = byNRF24L01_LeerRegistro(PipeDir[pipe]);
+
+	/* Cargo el tamaño del payload de los pipes 0 - 5 en la estructura */
+	for(uint8_t pipe = PORT_NRF24L01_REG_RX_PW_P0; pipe <= PORT_NRF24L01_REG_RX_PW_P5; pipe++)
+		NRF24L01_Struct.TamañoPayload[pipe - PORT_NRF24L01_REG_RX_PW_P0] = byNRF24L01_LeerRegistro(pipe);
+}
+
+
+static void vNRF24L01_CargarStruc_Defecto(void){
+
+	NRF24L01_Struct.TamañoDeDireccion = 5;
+	NRF24L01_Struct.CanalDeRF = 2;
+	NRF24L01_Struct.Potencia = 0;
+	NRF24L01_Struct.DataRate = 2;
+	NRF24L01_Struct.CRCScheme = 1;
+
+	vCargar_Direccion_Structura(NRF24L01_Struct.DireccionTx, DefaultDirPipe0Tx);
+	vCargar_Direccion_Structura(NRF24L01_Struct.DireccionPipe0, DefaultDirPipe0Tx);
+	vCargar_Direccion_Structura(NRF24L01_Struct.DireccionPipe1, DefaultDirPipe1);
+
+	NRF24L01_Struct.DireccionPipes2_5[Pipe2] = PORT_NRF24L01_REG_DEFAULT_VAL_RX_ADDR_P2;
+	NRF24L01_Struct.DireccionPipes2_5[Pipe3] = PORT_NRF24L01_REG_DEFAULT_VAL_RX_ADDR_P3;
+	NRF24L01_Struct.DireccionPipes2_5[Pipe4] = PORT_NRF24L01_REG_DEFAULT_VAL_RX_ADDR_P4;
+	NRF24L01_Struct.DireccionPipes2_5[Pipe5] = PORT_NRF24L01_REG_DEFAULT_VAL_RX_ADDR_P5;
+
+	for(uint8_t pipe = Pipe0; pipe <PipeAll; pipe++)
+		NRF24L01_Struct.TamañoPayload[pipe] = 0;
+}
+
+
+static void vCargar_Direccion_Structura(uint8_t *cadenaStruc, const uint8_t *direccion){
+
+	for(uint8_t i = 0; i < NRF24L01_Struct.TamañoDeDireccion; i++)
+		cadenaStruc[i] = direccion[i];
+	/* Llena con 0 las posiciones del vector de direccion si es que sobran */
+	if( NRF24L01_Struct.TamañoDeDireccion < NRF24L01_MAX_DIR_SIZE ){
+		for(uint8_t i = NRF24L01_Struct.TamañoDeDireccion; i < NRF24L01_MAX_DIR_SIZE; i++)
+			cadenaStruc[i] = 0x00;
 	}
 }
 
 
-void vNRF24L01_SPI1_Iniciar(void){
-	/* Inicio los pines de Chip enable y chip select not */
-	vNRF24L01_SPI1_CE_CSN_Iniciar();
-	/* Inicializo el puerto SPI 1 */
-	vNRF24L01_SPI1_Init();
+void vNRF24L01_CRCScheme(uint8_t enDis){
+	/* enDis: ´1´- 1 byte , '2' – 2 bytes */
+	vNRF24L01_EscribirBit(PORT_NRF24L01_REG_CONFIG, PORT_NRF24L01_CRCO, enDis - 1);
+	/* Cargo el valor en la estructura */
+	NRF24L01_Struct.CRCScheme = enDis;
 }
 
 
 uint8_t bNRF24L01_DefaultIniciar(void){
-
-	uint8_t pipe0[5] = {0xE7, 0xE7, 0xE7, 0xE7, 0xE7},
-			pipe1[5] = {0xC2, 0xC2, 0xC2, 0xC2, 0xC2};
 
 	// Seteo el CRC a 1 byte
 	vNRF24L01_CRCScheme(0);
@@ -142,25 +219,25 @@ uint8_t bNRF24L01_DefaultIniciar(void){
 	// Habilitar el pipe1 para recibir
 	NRF24L01_HabilitarRxPipeN(Pipe1, 1);
 	// Direcciones para los canales de recepcion de 3 bytes
-	bNRF24L01_SetupTamañoDirecciones(NRF24L01_REG_DEFAULT_VAL_SETUP_AW);
+	bNRF24L01_SetupTamañoDirecciones(PORT_NRF24L01_REG_DEFAULT_VAL_SETUP_AW);
 	/* Setear el tiempo de retransmision (250+86uS) y la cantidad de intentos (3) */
 	bNRF24L01_SetRetransmisiones( 0,  3);
 	/* Setear el canal de RF */
-	bNRF24L01_SetCanalRF(NRF24L01_REG_DEFAULT_VAL_RF_CH); // Channel 2
+	bNRF24L01_SetCanalRF(PORT_NRF24L01_REG_DEFAULT_VAL_RF_CH); // Channel 2
 	// Setup: 2 Mbps & 0dBm & LNA gain
 	bNRF24L01_SetRF(NRF24L01_DataRate_2M, NRF24L01_Potencia_0dBm);
 	//TX & P0
-	NRF24L01_SetDireccionTx(pipe0);
+	NRF24L01_SetDireccionTx(DefaultDirPipe0Tx);
 	//P1
-	bNRF24L01_SetDireccionPipeRx(Pipe1, pipe1);
+	bNRF24L01_SetDireccionPipeRx(Pipe1, DefaultDirPipe1);
 	//P2
-	bNRF24L01_SetDireccionPipeRx(Pipe2, (uint8_t *)NRF24L01_REG_DEFAULT_VAL_RX_ADDR_P2);
+	bNRF24L01_SetDireccionPipeRx(Pipe2, (uint8_t *)PORT_NRF24L01_REG_DEFAULT_VAL_RX_ADDR_P2);
 	//P3
-	bNRF24L01_SetDireccionPipeRx(Pipe3, (uint8_t *)NRF24L01_REG_DEFAULT_VAL_RX_ADDR_P3);
+	bNRF24L01_SetDireccionPipeRx(Pipe3, (uint8_t *)PORT_NRF24L01_REG_DEFAULT_VAL_RX_ADDR_P3);
 	//P4
-	bNRF24L01_SetDireccionPipeRx(Pipe4, (uint8_t *)NRF24L01_REG_DEFAULT_VAL_RX_ADDR_P4);
+	bNRF24L01_SetDireccionPipeRx(Pipe4, (uint8_t *)PORT_NRF24L01_REG_DEFAULT_VAL_RX_ADDR_P4);
 	//P5
-	bNRF24L01_SetDireccionPipeRx(Pipe5, (uint8_t *)NRF24L01_REG_DEFAULT_VAL_RX_ADDR_P5);
+	bNRF24L01_SetDireccionPipeRx(Pipe5, (uint8_t *)PORT_NRF24L01_REG_DEFAULT_VAL_RX_ADDR_P5);
 	/* Setear ancho del Payload */
 	NRF24L01_SetRxPipePayloadWidth(PipeAll, 0x00);
 	/* Borrar Tx & Rx FIFOs */
@@ -168,6 +245,8 @@ uint8_t bNRF24L01_DefaultIniciar(void){
 	vNRF24L01_FlushRx();
 	/* Borrar flags de interrupciones */
 	vNRF24L01_BorrarFlagsInterrupciones();
+	/* Cargo los valores por defecto en la estrucutra */
+	vNRF24L01_CargarStruc_Defecto();
 	/* Return OK */
 	return 1;
 }
@@ -180,9 +259,9 @@ uint8_t bNRF24L01_SetCanalRF(uint8_t CanalDeRF) {
 		/* Guardar el nuevo valor del canal */
 		NRF24L01_Struct.CanalDeRF = CanalDeRF;
 		/* Escribir el valor del canal en el registro del NRF24L01 */
-		vNRF24L01_EscribirRegistro(NRF24L01_REG_RF_CH, CanalDeRF);
+		vNRF24L01_EscribirRegistro(PORT_NRF24L01_REG_RF_CH, CanalDeRF);
 		/* Chequeo que la escritura fue exitosa */
-		if(byNRF24L01_LeerRegistro(NRF24L01_REG_RF_CH) != CanalDeRF )
+		if(byNRF24L01_LeerRegistro(PORT_NRF24L01_REG_RF_CH) != CanalDeRF )
 		{
 			/* Asumo que no pudo escribir el dato */
 			return 0;
@@ -210,23 +289,23 @@ uint8_t bNRF24L01_SetRF(NRF24L01_DataRate_t DataRate, NRF24L01_Potencia_t Potenc
 			uint8_t byteTemp = 0;
 
 			if (DataRate == NRF24L01_DataRate_2M) {
-				byteTemp |= 1 << NRF24L01_RF_DR;     // NRF24L01_RF_DR = 3; lo corro 3 lugares al bit
+				byteTemp |= 1 << PORT_NRF24L01_RF_DR;     // NRF24L01_RF_DR = 3; lo corro 3 lugares al bit
 			}
 			/* Seteo la potencia de transmision */
 			if (Potencia == NRF24L01_Potencia_0dBm) {
-				byteTemp |= 3 << NRF24L01_RF_PWR;            // NRF24L01_RF_PWR = 1
+				byteTemp |= 3 << PORT_NRF24L01_RF_PWR;            // NRF24L01_RF_PWR = 1
 			} else if (Potencia == NRF24L01_Potencia_M6dBm) {
-				byteTemp |= 2 << NRF24L01_RF_PWR;
+				byteTemp |= 2 << PORT_NRF24L01_RF_PWR;
 			} else if (Potencia == NRF24L01_Potencia_M12dBm) {
-				byteTemp |= 1 << NRF24L01_RF_PWR;
+				byteTemp |= 1 << PORT_NRF24L01_RF_PWR;
 			}
 			// el caso NRF24L01_OutputPower_M18dBm es 0X00
 			/* Setear ganancia LNA */
-			byteTemp |= 1 << NRF24L01_LNA_HCURR;
+			byteTemp |= 1 << PORT_NRF24L01_LNA_HCURR;
 			/* Cargo en el registro los datos */
-			vNRF24L01_EscribirRegistro(NRF24L01_REG_RF_SETUP, byteTemp);
+			vNRF24L01_EscribirRegistro(PORT_NRF24L01_REG_RF_SETUP, byteTemp);
 			/* Verifico la carga del byte en el registro */
-			if(byNRF24L01_LeerRegistro(NRF24L01_REG_RF_SETUP) == byteTemp )
+			if(byNRF24L01_LeerRegistro(PORT_NRF24L01_REG_RF_SETUP) == byteTemp )
 			{
 				/* Escritura valida */
 				return 1;
@@ -251,7 +330,7 @@ uint8_t bNRF24L01_SetRF(NRF24L01_DataRate_t DataRate, NRF24L01_Potencia_t Potenc
 uint8_t bNRF24L01_SetRetransmisiones(uint16_t tiempoEntreIntentos, uint16_t maxCantIntentos){
 	if(tiempoEntreIntentos >= 0 && tiempoEntreIntentos <= 15 &&
 			maxCantIntentos >= 0 && maxCantIntentos <= NRF24L01_MAX_RETRANSMISIONES){
-		vNRF24L01_EscribirRegistro(NRF24L01_REG_RF_SETUP, ( ( tiempoEntreIntentos << NRF24L01_ARD ) | maxCantIntentos) );
+		vNRF24L01_EscribirRegistro(PORT_NRF24L01_REG_RF_SETUP, ( ( tiempoEntreIntentos << PORT_NRF24L01_ARD ) | maxCantIntentos) );
 		return 1;
 	}else{
 		return 0;
@@ -262,7 +341,7 @@ uint8_t bNRF24L01_SetRetransmisiones(uint16_t tiempoEntreIntentos, uint16_t maxC
 uint8_t bNRF24L01_SetupTamañoDirecciones(uint8_t CantidadBytes){
 	if(CantidadBytes >= NRF24L01_MIN_DIR_SIZE && CantidadBytes <= NRF24L01_MAX_DIR_SIZE){
 		NRF24L01_Struct.TamañoDeDireccion = CantidadBytes;
-		vNRF24L01_EscribirRegistro(NRF24L01_REG_SETUP_AW, 	CantidadBytes - 2 );
+		vNRF24L01_EscribirRegistro(PORT_NRF24L01_REG_SETUP_AW, 	CantidadBytes - 2 );
 		return 1;
 	}else{
 		/* Ingreso invalido de datos */
@@ -271,12 +350,11 @@ uint8_t bNRF24L01_SetupTamañoDirecciones(uint8_t CantidadBytes){
 }
 
 
-
 void NRF24L01_HabilitarRxPipeN(Pipe_Number_t pipe, uint8_t en_dis){
 	if(pipe >= Pipe0 && pipe <= Pipe5)
 	{
 		// Modifico el bit correspondiente en el registro
-		vNRF24L01_EscribirBit(NRF24L01_REG_EN_RXADDR, pipe, en_dis);
+		vNRF24L01_EscribirBit(PORT_NRF24L01_REG_EN_RXADDR, pipe, en_dis);
 		if(!en_dis){
 			/* Si lo deshabilito seteo un payload size de 0 bytes */
 			NRF24L01_SetRxPipePayloadWidth(pipe, 0);
@@ -284,10 +362,10 @@ void NRF24L01_HabilitarRxPipeN(Pipe_Number_t pipe, uint8_t en_dis){
 	}else if( pipe == PipeAll )
 	{
 		if(en_dis)
-			vNRF24L01_EscribirRegistro(NRF24L01_REG_EN_RXADDR, 0x3F); // Habilito todos
+			vNRF24L01_EscribirRegistro(PORT_NRF24L01_REG_EN_RXADDR, 0x3F); // Habilito todos
 		else
 		{
-			vNRF24L01_EscribirRegistro(NRF24L01_REG_EN_RXADDR, 0x00); // deshabilito todos
+			vNRF24L01_EscribirRegistro(PORT_NRF24L01_REG_EN_RXADDR, 0x00); // deshabilito todos
 		}
 	}
 }
@@ -295,15 +373,16 @@ void NRF24L01_HabilitarRxPipeN(Pipe_Number_t pipe, uint8_t en_dis){
 
 void NRF24L01_HabilitarAACKPN(Pipe_Number_t pipe, uint8_t en_dis){
 
-	if(pipe >= Pipe0 && pipe <= Pipe5){
+	if(pipe >= Pipe0 && pipe <= Pipe5)
+	{
 		/* Chequeo que el canal de recepción este habilitado */
-		if(bNRF24L01_LeerBit(NRF24L01_REG_EN_RXADDR, pipe))
-			vNRF24L01_EscribirBit(NRF24L01_REG_EN_AA, pipe, en_dis); // Modifico el Byte
+		if(bNRF24L01_LeerBit(PORT_NRF24L01_REG_EN_RXADDR, pipe))
+			vNRF24L01_EscribirBit(PORT_NRF24L01_REG_EN_AA, pipe, en_dis); // Modifico el Byte
 	}else if( pipe == PipeAll ){
 		if(en_dis)
-			vNRF24L01_EscribirRegistro(NRF24L01_REG_EN_AA, 0x3F);// Habilito todos
+			vNRF24L01_EscribirRegistro(PORT_NRF24L01_REG_EN_AA, 0x3F);// Habilito todos
 		else
-			vNRF24L01_EscribirRegistro(NRF24L01_REG_EN_AA, 0x00);// deshabilito todos
+			vNRF24L01_EscribirRegistro(PORT_NRF24L01_REG_EN_AA, 0x00);// deshabilito todos
 	}
 }
 
@@ -312,10 +391,22 @@ uint8_t bNRF24L01_SetDireccionPipeRx(Pipe_Number_t pipe, uint8_t *direccion) {
 
 	if(direccion && pipe >= Pipe0 && pipe <= Pipe5)
 	{
-		if( pipe == Pipe1 || pipe == Pipe0 ){
+		if( pipe == Pipe1 || pipe == Pipe0 )
+		{
+			/* Cargo la direccion del Pipe 0 o 1 en el registro */
 			vNRF24L01_EscribirMultiRegistros(PipeDir[pipe], direccion, NRF24L01_Struct.TamañoDeDireccion);
+
+			if(pipe == Pipe1){
+				/* Cargo la direccion del Pipe1 en la estructura */
+				vCargar_Direccion_Structura(NRF24L01_Struct.DireccionPipe1, direccion);
+			}else{
+				/* Cargo la direccion del Pipe0 en la estructura */
+				vCargar_Direccion_Structura(NRF24L01_Struct.DireccionPipe0, direccion);
+			}
 		}else{
+				/* Cargo la direccion del Pipe 2 - 5 en el registro */
 				vNRF24L01_EscribirRegistro(PipeDir[pipe], direccion[0]);
+				/* Cargo la direccion del Pipe 2 - 5 en la estructura - Byte menos signif.*/
 				NRF24L01_Struct.DireccionPipes2_5[ pipe - 2 ] = direccion[0];
 			}
 	}else{
@@ -347,35 +438,22 @@ void NRF24L01_SetRxPipePayloadWidth(Pipe_Number_t pipe, uint8_t payload){
 
 void NRF24L01_SetDireccionTx(uint8_t *direccion) {
 
-	vNRF24L01_EscribirMultiRegistros(NRF24L01_REG_TX_ADDR, direccion, NRF24L01_Struct.TamañoDeDireccion);   // Es la mismma direccion que el canal de recepcion - asi recibe el ACK POR P0
-
-	for(uint8_t i = 0; i < NRF24L01_Struct.TamañoDeDireccion; i++)
-		NRF24L01_Struct.DireccionTx[i] = direccion[i];
-	/* Llena con 0 las posiciones del vector */
-	if( NRF24L01_Struct.TamañoDeDireccion < NRF24L01_MAX_DIR_SIZE ){
-		for(uint8_t i = NRF24L01_Struct.TamañoDeDireccion; i < NRF24L01_MAX_DIR_SIZE; i++)
-			NRF24L01_Struct.DireccionTx[i] = 0x00;
-	}
-
+	vNRF24L01_EscribirMultiRegistros(PORT_NRF24L01_REG_TX_ADDR, direccion, NRF24L01_Struct.TamañoDeDireccion);   // Es la mismma direccion que el canal de recepcion - asi recibe el ACK POR P0
+	/* Cargo la direccion del Tx en la estructura */
+	vCargar_Direccion_Structura(NRF24L01_Struct.DireccionTx, direccion);
 	/* chequear si el AutoACK esta habilitado para el Pipe0 */
-	if(bNRF24L01_LeerBit(NRF24L01_REG_EN_AA, 0))
+	if(bNRF24L01_LeerBit(PORT_NRF24L01_REG_EN_AA, 0))
 	{
 		/* Si esta habilitado, cargo la misma direccion para el AACK */
 		vNRF24L01_EscribirMultiRegistros(Pipe0Dir, direccion, NRF24L01_Struct.TamañoDeDireccion);
 		/* Cargo la direccion del pipe0 en la estructura */
-		for(uint8_t i = 0; i < NRF24L01_Struct.TamañoDeDireccion; i++)
-			NRF24L01_Struct.DireccionPipe0[i] = direccion[i];
-		/* Llena con 0 las posiciones del vector si la direccion mide menos de 5 bytes*/
-		if( NRF24L01_Struct.TamañoDeDireccion < NRF24L01_MAX_DIR_SIZE ){
-			for(uint8_t i = NRF24L01_Struct.TamañoDeDireccion; i < NRF24L01_MAX_DIR_SIZE; i++)
-				NRF24L01_Struct.DireccionPipe0[i] = 0x00;
-		}
+		vCargar_Direccion_Structura(NRF24L01_Struct.DireccionPipe0, direccion);
 	}
 }
 
 
 uint8_t NRF24L01_TXFIFOEmpty(void){
-	return bNRF24L01_LeerBit(NRF24L01_REG_FIFO_STATUS, NRF24L01_TX_EMPTY);
+	return bNRF24L01_LeerBit(PORT_NRF24L01_REG_FIFO_STATUS, PORT_NRF24L01_TX_EMPTY);
 }
 
 
@@ -423,32 +501,33 @@ uint8_t bNRF24L01_TXModoI(uint8_t *data, uint8_t cantidadBytes) {
 
 NRF24L01_Tx_Status_t NRF24L01_GetTransmissionStatus(void){
 	uint8_t status = byNRF24L01_GetStatus();
-	if (bNRF24L01_LeerBit(status, NRF24L01_TX_DS)) {
-		/* Envio del dato exitoso */
+	return NRF24L01_Tx_Status_Ok;
+/*	if (bNRF24L01_LeerBit(status, PORT_NRF24L01_TX_DS)) {
+		 Envio del dato exitoso
 		return NRF24L01_Tx_Status_Ok;
-	} else if (bNRF24L01_LeerBit(status, NRF24L01_MAX_RT)) {
-		/* No se recibio el AACK - se entiende como mensaje perdido */
+	} else if (bNRF24L01_LeerBit(status, PORT_NRF24L01_MAX_RT)) {
+		 No se recibio el AACK - se entiende como mensaje perdido
 		return NRF24L01_Tx_Status_Lost;
 	}
-	/* Enviando mensaje: Esto es si TX_DS y/o MAX_RT valen '0' */
-	return NRF24L01_Tx_Status_Sending;
+	 Enviando mensaje: Esto es si TX_DS y/o MAX_RT valen '0'
+	return NRF24L01_Tx_Status_Sending;*/
 }
 
 
 uint8_t bNRF24L01_DetectarPortadora(void){
-	return bNRF24L01_LeerBit( byNRF24L01_LeerRegistro(NRF24L01_REG_CD), NRF24L01_CD);
+	return bNRF24L01_LeerBit( byNRF24L01_LeerRegistro(PORT_NRF24L01_REG_CD), PORT_NRF24L01_CD);
 }
 
 
 uint8_t byNRF24L01_GetRetransmissionsCount(void){
 	/* Low 4 bits */
-	return byNRF24L01_LeerRegistro(NRF24L01_REG_OBSERVE_TX) & 0x0F;
+	return byNRF24L01_LeerRegistro(PORT_NRF24L01_REG_OBSERVE_TX) & 0x0F;
 }
 
 
 void vNRF24L01_BorrarFlagsInterrupciones(void) {
 
-	vNRF24L01_EscribirRegistro(NRF24L01_REG_STATUS , NRF24L01_REG_DEFAULT_VAL_STATUS);
+	vNRF24L01_EscribirRegistro(PORT_NRF24L01_REG_STATUS , PORT_NRF24L01_REG_DEFAULT_VAL_STATUS);
 }
 
 
