@@ -44,13 +44,6 @@
 #define NRF24L01_REG_STATUS			0x07	//Status Register
 #define NRF24L01_REG_OBSERVE_TX		0x08	//Read Only. Transmit observe register.
 #define NRF24L01_REG_CD				0x09	//Read Only. Received Power Detector. CD: Carrier Detect en NRF24L01+
-/* Registros para la direccion del pipe 0 */
-#define NRF24L01_REG_RX_ADDR_P0		0x0A	//Receive address data pipe 0. 5 Bytes maximum length.
-#define NRF24L01_REG_RX_ADDR_P1		0x0B	//Receive address data pipe 1. 5 Bytes maximum length.
-#define NRF24L01_REG_RX_ADDR_P2		0x0C	//Receive address data pipe 2. Only LSB
-#define NRF24L01_REG_RX_ADDR_P3		0x0D	//Receive address data pipe 3. Only LSB
-#define NRF24L01_REG_RX_ADDR_P4		0x0E	//Receive address data pipe 4. Only LSB
-#define NRF24L01_REG_RX_ADDR_P5		0x0F	//Receive address data pipe 5. Only LSB
 /* Registro para la direccion del TX */
 #define NRF24L01_REG_TX_ADDR		0x10	//Transmit address. Used for a PTX device only
 /* Registros para la direccion del seteo
@@ -63,9 +56,6 @@
 #define NRF24L01_REG_RX_PW_P5		0x16	//Number of bytes in RX payload in data pipe 5 (1 to 32 bytes).
 /* Registro saber el estado del FIFO */
 #define NRF24L01_REG_FIFO_STATUS	0x17	//FIFO Status Register
-
-
-
 
 /* Valores iniciales por default de los registros, util para hacer un reseteo
  * a los valores por defecto */
@@ -81,6 +71,7 @@
 #define NRF24L01_REG_DEFAULT_VAL_RX_ADDR_P3		0xC4
 #define NRF24L01_REG_DEFAULT_VAL_RX_ADDR_P4		0xC5
 #define NRF24L01_REG_DEFAULT_VAL_RX_ADDR_P5		0xC6
+
 
 
 /* Configuracion de los registros
@@ -138,11 +129,11 @@
 /**
  * Estados de transmision
  */
-typedef enum _NRF24L01_Transmit_Status_t {
-	NRF24L01_Transmit_Status_Lost = 0x00,   /* Transmision fallida */
-	NRF24L01_Transmit_Status_Ok = 0x01,     /*Mensaje enviado exitosamente */
-	NRF24L01_Transmit_Status_Sending = 0xFF /* Transmision en proceso */
-} NRF24L01_Transmit_Status_t;
+typedef enum _NRF24L01_Tx_Status_t {
+	NRF24L01_Tx_Status_Lost = 0x00,   /* Transmision fallida */
+	NRF24L01_Tx_Status_Ok = 0x01,     /*Mensaje enviado exitosamente */
+	NRF24L01_Tx_Status_Sending = 0xFF /* Transmision en proceso */
+} NRF24L01_Tx_Status_t;
 
 
 

@@ -12,6 +12,15 @@
 #include "nrf24.h"
 //#include "stm32f4xx_nucleo_144.h"
 
+/* Private define ------------------------------------------------------------*/
+#define NRF24L01_MAX_DIR_SIZE 5
+#define NRF24L01_MIN_DIR_SIZE 3
+
+#define NRF24L01_MAX_RETRANSMISIONES 15
+#define NRF24L01_MAX_PAYLOAD_SIZE_BY 32
+
+#define NRF24L01_MAX_CANT_CANALES 125
+
 /* Private typedef -----------------------------------------------------------*/
 
 /* Esta estructura se utilizara en futuras funciones que devuelva algunos parametros
@@ -27,11 +36,11 @@ typedef struct {
 	NRF24L01_DataRate_t DataRate;	// Data rate
 	uint8_t CRCScheme;				// CRC encoding scheme
 	/* Caracteristicas particulares de cada registro */
-	uint8_t DireccionTx[5];			// Direccion del canal de transmision
-	uint8_t DireccionPipe0[5];		// Direccion del canal de de recepcion 0
-	uint8_t DireccionPipe1[5];		// Direccion del canal de de recepcion 1
-	uint8_t DireccionPipes2_5[4];	// Ultimo byte de la direccion de los canales de recepcion 2-5
-	uint8_t TamañoPayload[6];		// Tamaño del Payload del pipe 0 al 5
+	uint8_t DireccionTx[NRF24L01_MAX_DIR_SIZE];			// Direccion del canal de transmision
+	uint8_t DireccionPipe0[NRF24L01_MAX_DIR_SIZE];		// Direccion del canal de de recepcion 0
+	uint8_t DireccionPipe1[NRF24L01_MAX_DIR_SIZE];		// Direccion del canal de de recepcion 1
+	uint8_t DireccionPipes2_5[4];						// Ultimo byte de la direccion de los canales de recepcion 2-5
+	uint8_t TamañoPayload[6];							// Tamaño del Payload del pipe 0 al 5
 
 } NRF24L01_t;
 
@@ -48,8 +57,6 @@ typedef enum _Pipe_Number_Dir_t {
 	Pipe4Dir = 0x0E,
 	Pipe5Dir = 0x0F,
 } Pipe_Number_Dir_t;
-
-/* Private define ------------------------------------------------------------*/
 
 /* Private macro -------------------------------------------------------------*/
 
@@ -88,7 +95,7 @@ uint8_t NRF24L01_TXFIFOEmpty(void);
 /* Funciones operar con el NRF24L01 o determinar el estado de algun parametros del mismo */
 
 uint8_t bNRF24L01_TXModoI(uint8_t *data, uint8_t cantidadBytes) ;
-NRF24L01_Transmit_Status_t NRF24L01_GetTransmissionStatus(void);
+NRF24L01_Tx_Status_t NRF24L01_GetTransmissionStatus(void);
 uint8_t bNRF24L01_DetectarPortadora(void);
 uint8_t byNRF24L01_GetRetransmissionsCount(void);
 
@@ -168,7 +175,7 @@ uint8_t bNRF24L01_DefaultIniciar(void){
 
 uint8_t bNRF24L01_SetCanalRF(uint8_t CanalDeRF) {
 	/* Chequeo de errores de ingreso de valor */
-	if(CanalDeRF >= 0 && CanalDeRF <= 125 && CanalDeRF != NRF24L01_Struct.CanalDeRF)
+	if(CanalDeRF >= 0 && CanalDeRF <= NRF24L01_MAX_CANT_CANALES && CanalDeRF != NRF24L01_Struct.CanalDeRF)
 	{
 		/* Guardar el nuevo valor del canal */
 		NRF24L01_Struct.CanalDeRF = CanalDeRF;
@@ -242,7 +249,8 @@ uint8_t bNRF24L01_SetRF(NRF24L01_DataRate_t DataRate, NRF24L01_Potencia_t Potenc
 
 
 uint8_t bNRF24L01_SetRetransmisiones(uint16_t tiempoEntreIntentos, uint16_t maxCantIntentos){
-	if(tiempoEntreIntentos >= 0 && tiempoEntreIntentos <= 15 && maxCantIntentos >= 0 && maxCantIntentos <= 15){
+	if(tiempoEntreIntentos >= 0 && tiempoEntreIntentos <= 15 &&
+			maxCantIntentos >= 0 && maxCantIntentos <= NRF24L01_MAX_RETRANSMISIONES){
 		vNRF24L01_EscribirRegistro(NRF24L01_REG_RF_SETUP, ( ( tiempoEntreIntentos << NRF24L01_ARD ) | maxCantIntentos) );
 		return 1;
 	}else{
@@ -252,7 +260,7 @@ uint8_t bNRF24L01_SetRetransmisiones(uint16_t tiempoEntreIntentos, uint16_t maxC
 
 
 uint8_t bNRF24L01_SetupTamañoDirecciones(uint8_t CantidadBytes){
-	if(CantidadBytes >= 3 && CantidadBytes <= 5){
+	if(CantidadBytes >= NRF24L01_MIN_DIR_SIZE && CantidadBytes <= NRF24L01_MAX_DIR_SIZE){
 		NRF24L01_Struct.TamañoDeDireccion = CantidadBytes;
 		vNRF24L01_EscribirRegistro(NRF24L01_REG_SETUP_AW, 	CantidadBytes - 2 );
 		return 1;
@@ -276,10 +284,10 @@ void NRF24L01_HabilitarRxPipeN(Pipe_Number_t pipe, uint8_t en_dis){
 	}else if( pipe == PipeAll )
 	{
 		if(en_dis)
-			vNRF24L01_EscribirRegistro(NRF24L01_REG_EN_RXADDR, 0x3F);
+			vNRF24L01_EscribirRegistro(NRF24L01_REG_EN_RXADDR, 0x3F); // Habilito todos
 		else
 		{
-			vNRF24L01_EscribirRegistro(NRF24L01_REG_EN_RXADDR, 0x00);
+			vNRF24L01_EscribirRegistro(NRF24L01_REG_EN_RXADDR, 0x00); // deshabilito todos
 		}
 	}
 }
@@ -293,9 +301,9 @@ void NRF24L01_HabilitarAACKPN(Pipe_Number_t pipe, uint8_t en_dis){
 			vNRF24L01_EscribirBit(NRF24L01_REG_EN_AA, pipe, en_dis); // Modifico el Byte
 	}else if( pipe == PipeAll ){
 		if(en_dis)
-			vNRF24L01_EscribirRegistro(NRF24L01_REG_EN_AA, 0x3F);
+			vNRF24L01_EscribirRegistro(NRF24L01_REG_EN_AA, 0x3F);// Habilito todos
 		else
-			vNRF24L01_EscribirRegistro(NRF24L01_REG_EN_AA, 0x00);
+			vNRF24L01_EscribirRegistro(NRF24L01_REG_EN_AA, 0x00);// deshabilito todos
 	}
 }
 
@@ -319,7 +327,7 @@ uint8_t bNRF24L01_SetDireccionPipeRx(Pipe_Number_t pipe, uint8_t *direccion) {
 
 void NRF24L01_SetRxPipePayloadWidth(Pipe_Number_t pipe, uint8_t payload){
 
-	if(pipe >= Pipe0 && pipe <= PipeAll && payload >= 0 && payload <= 32)
+	if(pipe >= Pipe0 && pipe <= PipeAll && payload >= 0 && payload <= NRF24L01_MAX_PAYLOAD_SIZE_BY)
 	{
 		if(pipe == PipeAll)
 		{
@@ -343,15 +351,25 @@ void NRF24L01_SetDireccionTx(uint8_t *direccion) {
 
 	for(uint8_t i = 0; i < NRF24L01_Struct.TamañoDeDireccion; i++)
 		NRF24L01_Struct.DireccionTx[i] = direccion[i];
+	/* Llena con 0 las posiciones del vector */
+	if( NRF24L01_Struct.TamañoDeDireccion < NRF24L01_MAX_DIR_SIZE ){
+		for(uint8_t i = NRF24L01_Struct.TamañoDeDireccion; i < NRF24L01_MAX_DIR_SIZE; i++)
+			NRF24L01_Struct.DireccionTx[i] = 0x00;
+	}
 
 	/* chequear si el AutoACK esta habilitado para el Pipe0 */
 	if(bNRF24L01_LeerBit(NRF24L01_REG_EN_AA, 0))
 	{
 		/* Si esta habilitado, cargo la misma direccion para el AACK */
-		vNRF24L01_EscribirMultiRegistros(NRF24L01_REG_RX_ADDR_P0, direccion, NRF24L01_Struct.TamañoDeDireccion);
-
+		vNRF24L01_EscribirMultiRegistros(Pipe0Dir, direccion, NRF24L01_Struct.TamañoDeDireccion);
+		/* Cargo la direccion del pipe0 en la estructura */
 		for(uint8_t i = 0; i < NRF24L01_Struct.TamañoDeDireccion; i++)
 			NRF24L01_Struct.DireccionPipe0[i] = direccion[i];
+		/* Llena con 0 las posiciones del vector si la direccion mide menos de 5 bytes*/
+		if( NRF24L01_Struct.TamañoDeDireccion < NRF24L01_MAX_DIR_SIZE ){
+			for(uint8_t i = NRF24L01_Struct.TamañoDeDireccion; i < NRF24L01_MAX_DIR_SIZE; i++)
+				NRF24L01_Struct.DireccionPipe0[i] = 0x00;
+		}
 	}
 }
 
@@ -366,7 +384,7 @@ uint8_t bNRF24L01_TXModoI(uint8_t *data, uint8_t cantidadBytes) {
 	/* Borrar el FIFO de RX */
 	vNRF24L01_FlushRx(); // Tengo que ver si el ACK de P0 se borra en cada nueva tx
 	/* Chequeo que el dato no sea nulo */
-	if(data && cantidadBytes > 0 && cantidadBytes <= 32){
+	if(data && cantidadBytes > 0 && cantidadBytes <= NRF24L01_MAX_PAYLOAD_SIZE_BY){
 		/* Borro los flags de interrupciones del registro Status */
 		vNRF24L01_BorrarFlagsInterrupciones();
 		/* Escribo el payload antes de ir al modo TX, si no ira al modo Standby II */
@@ -385,14 +403,14 @@ uint8_t bNRF24L01_TXModoI(uint8_t *data, uint8_t cantidadBytes) {
 	/* ¡¡¡ Transmitiendo... !!! */
 
 	/* Creo variable para saber el estado de la transmision */
-	NRF24L01_Transmit_Status_t TX_state;
+	NRF24L01_Tx_Status_t TX_state;
 	/* Pregunto si termino de transmitir chequeando un flag TX_DS del Status  */
-	while( ( TX_state = NRF24L01_GetTransmissionStatus() ) == NRF24L01_Transmit_Status_Sending);
+	while( ( TX_state = NRF24L01_GetTransmissionStatus() ) == NRF24L01_Tx_Status_Sending);
 	/* Vuelvo al modo Stand By I, para bajar el consumo una vez que transmitio (FIFO = 0)
 	 * o que realizo todos los intentos por transmitir (Si AACK esta habilitado)*/
 	bNRF24L01_StbyModoIOn();
 	/* Chequeo el resultado de la transmision */
-	if( TX_state == NRF24L01_Transmit_Status_Ok)
+	if( TX_state == NRF24L01_Tx_Status_Ok)
 	{
 		return 1; // Transmision exitosa. TX_DS = 1
 	}
@@ -403,17 +421,17 @@ uint8_t bNRF24L01_TXModoI(uint8_t *data, uint8_t cantidadBytes) {
 }
 
 
-NRF24L01_Transmit_Status_t NRF24L01_GetTransmissionStatus(void){
+NRF24L01_Tx_Status_t NRF24L01_GetTransmissionStatus(void){
 	uint8_t status = byNRF24L01_GetStatus();
 	if (bNRF24L01_LeerBit(status, NRF24L01_TX_DS)) {
 		/* Envio del dato exitoso */
-		return NRF24L01_Transmit_Status_Ok;
+		return NRF24L01_Tx_Status_Ok;
 	} else if (bNRF24L01_LeerBit(status, NRF24L01_MAX_RT)) {
 		/* No se recibio el AACK - se entiende como mensaje perdido */
-		return NRF24L01_Transmit_Status_Lost;
+		return NRF24L01_Tx_Status_Lost;
 	}
 	/* Enviando mensaje: Esto es si TX_DS y/o MAX_RT valen '0' */
-	return NRF24L01_Transmit_Status_Sending;
+	return NRF24L01_Tx_Status_Sending;
 }
 
 

@@ -223,7 +223,7 @@ uint8_t bNRF24L01_TXModoI(uint8_t *data, uint8_t cantidadBytes);
  *		NRF24L01_Transmit_Status_Sending: Si el bit 4 y 5 se mantienen en 0, el NRF24L01
  *										  esta en proceso de transmision.
  */
-NRF24L01_Transmit_Status_t NRF24L01_GetTransmissionStatus(void);
+NRF24L01_Tx_Status_t NRF24L01_GetTransmissionStatus(void);
 
 /**
  *	Detecta si hay una señal de portadora en el canal seteado en:
